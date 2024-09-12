@@ -268,13 +268,6 @@ class TimerViewModel(
         repository.updateUserPreferences(updatedPreferences)
     }
 
-    fun addActivity(name: String, multiplier: Float, type: ActivityType) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val newActivity = Activity(name = name, multiplier = multiplier, type = type)
-            repository.insertOrUpdateActivity(newActivity)
-        }
-    }
-
     // https://developer.android.com/topic/libraries/architecture/viewmodel/viewmodel-factories
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {

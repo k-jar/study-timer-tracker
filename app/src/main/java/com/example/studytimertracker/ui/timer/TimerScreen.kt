@@ -1,4 +1,4 @@
-package com.example.studytimertracker.ui
+package com.example.studytimertracker.ui.timer
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -153,18 +153,5 @@ fun TimerScreen(viewModel: TimerViewModel) {
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        // Add Activity Button
-        Button(onClick = { showDialog = true }) {
-            Text("Add Activity")
-        }
-
-        // Show Add Activity Dialog
-        if (showDialog) {
-            AddActivityDialog(onDismiss = { showDialog = false }) { name, multiplier, type ->
-                viewModel.addActivity(name, multiplier, type)
-                showDialog = false
-            }
-        }
     }
 }

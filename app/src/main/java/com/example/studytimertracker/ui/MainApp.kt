@@ -1,11 +1,12 @@
 package com.example.studytimertracker.ui
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
-import com.example.studytimertracker.ui.screens.ActivitiesScreen
-import com.example.studytimertracker.ui.screens.TimerScreen
+import com.example.studytimertracker.ui.components.BottomNavigationBar
+import com.example.studytimertracker.ui.navigation.NavigationComponent
 import com.example.studytimertracker.viewmodel.ActivitiesViewModel
 import com.example.studytimertracker.viewmodel.TimerViewModel
 
@@ -14,8 +15,16 @@ import com.example.studytimertracker.viewmodel.TimerViewModel
 fun MainApp(timerViewModel: TimerViewModel, activityViewModel: ActivitiesViewModel) {
     val navController = rememberNavController()
 
-    NavHost(navController, startDestination = "timer") {
-        composable("timer") { TimerScreen(timerViewModel) }
-        composable("activities") { ActivitiesScreen(activityViewModel) }
+    Scaffold(
+        bottomBar = {
+            BottomNavigationBar(navController = navController)
+        }
+    ) { innerPadding ->
+        NavigationComponent(
+            navController = navController,
+            timerViewModel = timerViewModel,
+            activityViewModel = activityViewModel,
+            modifier = Modifier.padding(innerPadding)
+        )
     }
 }

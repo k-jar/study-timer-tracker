@@ -1,4 +1,4 @@
-package com.example.studytimertracker.ui.timer
+package com.example.studytimertracker.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

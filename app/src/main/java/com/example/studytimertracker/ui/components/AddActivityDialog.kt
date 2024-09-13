@@ -1,4 +1,4 @@
-package com.example.studytimertracker.ui.activities
+package com.example.studytimertracker.ui.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row

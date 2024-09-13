@@ -1,4 +1,4 @@
-package com.example.studytimertracker.ui.timer
+package com.example.studytimertracker.ui.screens
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.studytimertracker.model.Activity
 import com.example.studytimertracker.model.ActivityType
+import com.example.studytimertracker.ui.components.DropdownMenu
 import com.example.studytimertracker.viewmodel.TimerViewModel
 
 @Composable

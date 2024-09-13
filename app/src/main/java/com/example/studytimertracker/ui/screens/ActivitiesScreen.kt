@@ -1,4 +1,4 @@
-package com.example.studytimertracker.ui.activities
+package com.example.studytimertracker.ui.screens
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
@@ -20,8 +20,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.studytimertracker.model.ActivityType
+import com.example.studytimertracker.ui.components.ActivityRow
+import com.example.studytimertracker.ui.components.AddActivityDialog
 import com.example.studytimertracker.viewmodel.ActivitiesViewModel
-import com.example.studytimertracker.viewmodel.TimerViewModel
 
 @Composable
 fun ActivitiesScreen(viewModel: ActivitiesViewModel) {

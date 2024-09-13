@@ -4,8 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.studytimertracker.ui.activities.ActivitiesScreen
-import com.example.studytimertracker.ui.timer.TimerScreen
+import com.example.studytimertracker.ui.screens.ActivitiesScreen
+import com.example.studytimertracker.ui.screens.TimerScreen
 import com.example.studytimertracker.viewmodel.ActivitiesViewModel
 import com.example.studytimertracker.viewmodel.TimerViewModel
 
@@ -16,6 +16,6 @@ fun MainApp(timerViewModel: TimerViewModel, activityViewModel: ActivitiesViewMod
 
     NavHost(navController, startDestination = "timer") {
         composable("timer") { TimerScreen(timerViewModel) }
-        composable("activities") { ActivitiesScreen(activityViewModel)}
+        composable("activities") { ActivitiesScreen(activityViewModel) }
     }
 }

@@ -8,11 +8,12 @@ import androidx.navigation.compose.rememberNavController
 import com.example.studytimertracker.ui.components.BottomNavigationBar
 import com.example.studytimertracker.ui.navigation.NavigationComponent
 import com.example.studytimertracker.viewmodel.ActivitiesViewModel
+import com.example.studytimertracker.viewmodel.HistoryViewModel
 import com.example.studytimertracker.viewmodel.TimerViewModel
 
 
 @Composable
-fun MainApp(timerViewModel: TimerViewModel, activityViewModel: ActivitiesViewModel) {
+fun MainApp(timerViewModel: TimerViewModel, activityViewModel: ActivitiesViewModel, historyViewModel: HistoryViewModel) {
     val navController = rememberNavController()
 
     Scaffold(
@@ -24,6 +25,7 @@ fun MainApp(timerViewModel: TimerViewModel, activityViewModel: ActivitiesViewMod
             navController = navController,
             timerViewModel = timerViewModel,
             activityViewModel = activityViewModel,
+            historyViewModel = historyViewModel,
             modifier = Modifier.padding(innerPadding)
         )
     }

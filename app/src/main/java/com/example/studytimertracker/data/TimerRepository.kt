@@ -77,4 +77,7 @@ class TimerRepository(
     suspend fun updateUserPreferences(preferences: UserPreferences) {
         userPreferencesDao.insertOrUpdate(preferences)
     }
+
+    fun getHistoryByDate(date: String): Flow<List<History>> = historyDao.getHistoryByDate(date)
+
 }

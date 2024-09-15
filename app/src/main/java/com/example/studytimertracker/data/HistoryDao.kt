@@ -14,4 +14,7 @@ interface HistoryDao {
 
     @Query("SELECT * FROM history_table ORDER BY date DESC")
     fun getAllHistories(): Flow<List<History>>
+
+    @Query("SELECT * FROM history_table WHERE date = :date")
+    fun getHistoryByDate(date: String): Flow<List<History>>
 }

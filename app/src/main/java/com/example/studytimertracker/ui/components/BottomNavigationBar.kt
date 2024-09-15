@@ -15,11 +15,12 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 sealed class BottomNavScreen(val route: String, val label: String, val icon: ImageVector) {
     data object Timer : BottomNavScreen("timer", "Timer", Icons.Default.Home)
     data object Activities : BottomNavScreen("activities", "Activities", Icons.AutoMirrored.Filled.List)
+    data object History : BottomNavScreen("history", "History", Icons.AutoMirrored.Filled.List)
 }
 
 @Composable
 fun BottomNavigationBar(navController: NavController) {
-    val items = listOf(BottomNavScreen.Timer, BottomNavScreen.Activities)
+    val items = listOf(BottomNavScreen.Timer, BottomNavScreen.Activities, BottomNavScreen.History)
     NavigationBar {
         val navBackStackEntry = navController.currentBackStackEntryAsState().value
         val currentRoute = navBackStackEntry?.destination?.route

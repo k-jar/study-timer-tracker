@@ -16,5 +16,5 @@ interface RestStoreDao {
     fun getRestStore(): Flow<RestStore>
 
     @Query("SELECT * FROM rest_store_table WHERE id = 0")
-    suspend fun getRestStoreOnce(): RestStore
+    suspend fun getRestStoreOnce(): RestStore?
 }

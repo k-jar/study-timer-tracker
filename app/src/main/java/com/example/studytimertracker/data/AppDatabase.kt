@@ -11,7 +11,7 @@ import com.example.studytimertracker.model.UserPreferences
 
 @Database(
     entities = [Activity::class, RestStore::class, UserPreferences::class, History::class],
-    version = 2
+    version = 4
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun activityDao(): ActivityDao

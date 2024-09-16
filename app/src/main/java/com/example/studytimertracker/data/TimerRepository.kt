@@ -4,6 +4,8 @@ import com.example.studytimertracker.model.Activity
 import com.example.studytimertracker.model.History
 import com.example.studytimertracker.model.RestStore
 import com.example.studytimertracker.model.UserPreferences
+import com.example.studytimertracker.utils.DateUtils.getCurrentDate
+import com.example.studytimertracker.utils.DateUtils.getCurrentTime
 import kotlinx.coroutines.flow.Flow
 
 class TimerRepository(
@@ -27,7 +29,7 @@ class TimerRepository(
 
     suspend fun getRestStoreOnce(): RestStore {
         val restStore = restStoreDao.getRestStoreOnce()
-        return restStore
+        return restStore ?: RestStore() // Return default RestStore if null
     }
 
     suspend fun updateRestStore(restStore: RestStore) {
@@ -56,8 +58,31 @@ class TimerRepository(
     }
 
     // Reset rest store daily based on user preferences
-    fun resetRestStoreForNewDay() {
-        // TODO: Implement logic to reset rest store for new day
+    suspend fun resetRestStoreForNewDay() {
+        val restStore = getRestStoreOnce()
+        val userPreferences = getUserPreferencesOnce() ?: return
+        val lastResetDate = restStore.lastResetDate
+        val currentDate = getCurrentDate()
+
+        // Check if the last reset was not today
+        if (lastResetDate != currentDate) {
+            val currentTime = getCurrentTime() // Get the current time as HH:mm
+            val dayStartTime = userPreferences.dayStartTime
+
+            // Check if the current time is past the user's start of the day time
+            if (currentTime >= dayStartTime) {
+                // Calculate carryover
+                val carryOverPercentage = userPreferences.carryOverPercentage
+                val carryOverRest = (restStore.totalRestTime * carryOverPercentage / 100)
+
+                // Reset the rest store with carryover
+                val updatedRestStore = restStore.copy(
+                    totalRestTime = carryOverRest,
+                    lastResetDate = currentDate
+                )
+                updateRestStore(updatedRestStore)
+            }
+        }
     }
 
     // Insert history record
@@ -71,8 +96,10 @@ class TimerRepository(
     // UserPreferences operations
     fun getUserPreferences(): Flow<UserPreferences> = userPreferencesDao.getUserPreferences()
 
-    suspend fun getUserPreferencesOnce(): UserPreferences? =
-        userPreferencesDao.getUserPreferencesOnce()
+    suspend fun getUserPreferencesOnce(): UserPreferences {
+        val userPreferences = userPreferencesDao.getUserPreferencesOnce()
+        return userPreferences ?: UserPreferences() // Return default UserPreferences if null
+    }
 
     suspend fun updateUserPreferences(preferences: UserPreferences) {
         userPreferencesDao.insertOrUpdate(preferences)

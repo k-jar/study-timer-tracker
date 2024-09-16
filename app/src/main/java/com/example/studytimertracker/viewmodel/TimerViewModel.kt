@@ -18,7 +18,6 @@ import com.example.studytimertracker.model.History
 import com.example.studytimertracker.model.RestStore
 import com.example.studytimertracker.model.UserPreferences
 import com.example.studytimertracker.utils.DateUtils.getCurrentDate
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -223,19 +222,7 @@ class TimerViewModel(
     }
 
     private suspend fun checkAndResetRestStoreIfNeeded() {
-        val currentDate = getCurrentDate()
-        val restStore = repository.getRestStoreOnce()
-
-        if (restStore.lastResetDate != currentDate) {
-            val userPrefs = repository.getUserPreferencesOnce() ?: UserPreferences()
-            val carryOverAmount = (restStore.totalRestTime * userPrefs.carryOverPercentage) / 100
-
-            val updatedRestStore = restStore.copy(
-                totalRestTime = carryOverAmount,
-                lastResetDate = currentDate
-            )
-            repository.updateRestStore(updatedRestStore)
-        }
+        repository.resetRestStoreForNewDay()
     }
 
     private fun updateDailyWorkTime() {
@@ -262,7 +249,6 @@ class TimerViewModel(
         val updatedPreferences = currentPreferences.copy(
             carryOverPercentage = carryOverPercentage ?: currentPreferences.carryOverPercentage,
             dayStartTime = dayStartTime ?: currentPreferences.dayStartTime,
-            dayEndTime = dayEndTime ?: currentPreferences.dayEndTime
         )
 
         repository.updateUserPreferences(updatedPreferences)

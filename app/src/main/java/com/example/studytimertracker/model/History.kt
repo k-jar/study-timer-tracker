@@ -11,5 +11,12 @@ data class History(
     val sessionEndTime: Long,        // Session end time in milliseconds
     val totalTimeWorked: Long,       // Total time worked in this session (milliseconds)
     val restStoreAccumulated: Long,  // Rest store accumulated during the session
-    val restStoreUsed: Long          // Rest store used during rest activities
+    val restStoreUsed: Long,          // Rest store used during rest activities
+    val sessionActivities: List<SessionActivity> // List of activities and their time spent
+)
+
+data class SessionActivity(
+    val activityId: Int,  // Reference to the Activity
+    val startTime: Long,    // Start time of the activity in milliseconds
+    val endTime: Long,      // End time of the activity in milliseconds
 )

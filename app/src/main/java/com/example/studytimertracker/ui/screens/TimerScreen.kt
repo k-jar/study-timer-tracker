@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.example.studytimertracker.model.Activity
 import com.example.studytimertracker.model.ActivityType
 import com.example.studytimertracker.ui.components.DropdownMenu
+import com.example.studytimertracker.utils.DateTimeUtils.formatTime
 import com.example.studytimertracker.viewmodel.TimerViewModel
 
 @Composable
@@ -39,7 +40,6 @@ fun TimerScreen(viewModel: TimerViewModel) {
     // UI state management
     var selectedWorkActivity by remember { mutableStateOf<Activity?>(null) }
     var selectedRestActivity by remember { mutableStateOf<Activity?>(null) }
-    var showDialog by remember { mutableStateOf(false) }
 
     // Initialize the first activity as default
     LaunchedEffect(activities) {
@@ -50,7 +50,7 @@ fun TimerScreen(viewModel: TimerViewModel) {
     }
 
     // Total rest time (for Rest Budget)
-    val totalRestTime = restStore?.totalRestTime ?: 0L
+    val totalRestTime = restStore?.restTimeLeft ?: 0L
 
     Column(
         modifier = Modifier
@@ -65,13 +65,21 @@ fun TimerScreen(viewModel: TimerViewModel) {
             selectedWorkActivity
         ) { activity ->
             selectedWorkActivity = activity
+            if (isSessionActive && isWorking) {
+                // Restart work timer with updated activity
+                viewModel.switchMode(selectedWorkActivity, selectedRestActivity, switch = false)
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Timer for total work time
         Text(
-            text = "Total Time Worked: ${workTime / 1000}s",
+            text = "Total Time Worked",
+            style = MaterialTheme.typography.titleLarge
+        )
+        Text(
+            text = formatTime(workTime),
             style = MaterialTheme.typography.titleLarge
         )
 
@@ -84,29 +92,36 @@ fun TimerScreen(viewModel: TimerViewModel) {
             selectedRestActivity
         ) { activity ->
             selectedRestActivity = activity
+            if (isSessionActive && !isWorking) {
+                // Restart rest timer with updated activity
+                viewModel.switchMode(selectedWorkActivity, selectedRestActivity, switch = false)
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Timer for rest budget
         Text(
-            text = "Rest Budget: ${totalRestTime / 1000}s",
+            text = "Rest Budget",
+            style = MaterialTheme.typography.titleLarge
+        )
+        Text(
+            text = formatTime(totalRestTime),
             style = MaterialTheme.typography.titleLarge
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Start/Stop Session and Switch Buttons
+        // Start Day and Switch Buttons
         Row {
             Button(
                 onClick = {
                     if (!isSessionActive) {
-                        // Start the session with the selected work activity
-                        val selectedActivity = selectedWorkActivity ?: return@Button
-                        viewModel.startSession(selectedActivity, true)
+                        val selectedWork = selectedWorkActivity ?: return@Button
+                        val selectedRest = selectedRestActivity ?: return@Button
+                        viewModel.startSession(selectedWork, selectedRest)
                     } else {
-                        // Switch between work and rest mode
-                        viewModel.switchMode()
+                        viewModel.switchMode(selectedWorkActivity, selectedRestActivity, switch = true)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
@@ -114,7 +129,7 @@ fun TimerScreen(viewModel: TimerViewModel) {
                 )
             ) {
                 Text(
-                    if (!isSessionActive) "Start Session"
+                    if (!isSessionActive) "Start Day"
                     else if (isWorking) "Switch to Rest"
                     else "Switch to Work"
                 )
@@ -141,17 +156,17 @@ fun TimerScreen(viewModel: TimerViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // End session button
-        if (isSessionActive && isPaused) {
-            Button(
-                onClick = {
-                    viewModel.endSession()
-                },
-                colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.error)
-            ) {
-                Text("End Session")
-            }
-        }
+//        // End session button
+//        if (isSessionActive && isPaused) {
+//            Button(
+//                onClick = {
+//                    viewModel.endSession()
+//                },
+//                colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.error)
+//            ) {
+//                Text("End Session")
+//            }
+//        }
 
         Spacer(modifier = Modifier.height(16.dp))
     }

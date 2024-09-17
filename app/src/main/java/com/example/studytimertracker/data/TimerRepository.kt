@@ -4,8 +4,8 @@ import com.example.studytimertracker.model.Activity
 import com.example.studytimertracker.model.History
 import com.example.studytimertracker.model.RestStore
 import com.example.studytimertracker.model.UserPreferences
-import com.example.studytimertracker.utils.DateUtils.getCurrentDate
-import com.example.studytimertracker.utils.DateUtils.getCurrentTime
+import com.example.studytimertracker.utils.DateTimeUtils.getCurrentDate
+import com.example.studytimertracker.utils.DateTimeUtils.getCurrentTime
 import kotlinx.coroutines.flow.Flow
 
 class TimerRepository(
@@ -32,20 +32,20 @@ class TimerRepository(
         return restStore ?: RestStore() // Return default RestStore if null
     }
 
-    suspend fun updateRestStore(restStore: RestStore) {
+    private suspend fun updateRestStore(restStore: RestStore) {
         restStoreDao.insertOrUpdate(restStore)
     }
 
     // Update work time in the rest store
     suspend fun updateWorkTime(amount: Long) {
         val restStore = getRestStoreOnce() // Get the current RestStore
-        val updatedRestStore = restStore.copy(totalRestTime = restStore.totalRestTime + amount)
+        val updatedRestStore = restStore.copy(restTimeLeft = restStore.restTimeLeft + amount)
         updateRestStore(updatedRestStore)
     }
 
     suspend fun accumulateRestTime(amount: Long) {
         val restStore = getRestStoreOnce() // Get the current RestStore
-        val updatedRestStore = restStore.copy(totalRestTime = restStore.totalRestTime + amount)
+        val updatedRestStore = restStore.copy(restTimeLeft = restStore.restTimeLeft + amount)
         updateRestStore(updatedRestStore)
     }
 
@@ -53,14 +53,14 @@ class TimerRepository(
     suspend fun consumeRestTime(amount: Long) {
         val restStore = getRestStoreOnce() // Get the current RestStore
         val updatedRestStore =
-            restStore.copy(totalRestTime = maxOf(0, restStore.totalRestTime - amount))
+            restStore.copy(restTimeLeft = maxOf(0, restStore.restTimeLeft - amount))
         updateRestStore(updatedRestStore)
     }
 
     // Reset rest store daily based on user preferences
     suspend fun resetRestStoreForNewDay() {
         val restStore = getRestStoreOnce()
-        val userPreferences = getUserPreferencesOnce() ?: return
+        val userPreferences = getUserPreferencesOnce()
         val lastResetDate = restStore.lastResetDate
         val currentDate = getCurrentDate()
 
@@ -73,11 +73,11 @@ class TimerRepository(
             if (currentTime >= dayStartTime) {
                 // Calculate carryover
                 val carryOverPercentage = userPreferences.carryOverPercentage
-                val carryOverRest = (restStore.totalRestTime * carryOverPercentage / 100)
+                val carryOverRest = (restStore.restTimeLeft * carryOverPercentage / 100)
 
                 // Reset the rest store with carryover
                 val updatedRestStore = restStore.copy(
-                    totalRestTime = carryOverRest,
+                    restTimeLeft = carryOverRest,
                     lastResetDate = currentDate
                 )
                 updateRestStore(updatedRestStore)

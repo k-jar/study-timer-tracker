@@ -9,7 +9,6 @@ data class Activity(
     val name: String,
     val multiplier: Float,  // How fast rest is accumulated/consumed
     val type: ActivityType, // Either WORK or REST
-    val totalTimeSpent: Long = 0L // Track the total time spent on this activity in milliseconds
 )
 
 enum class ActivityType {

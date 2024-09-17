@@ -13,14 +13,15 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.studytimertracker.StudyTimerTrackerApp
 import com.example.studytimertracker.data.TimerRepository
 import com.example.studytimertracker.model.Activity
-import com.example.studytimertracker.model.ActivityType
 import com.example.studytimertracker.model.History
 import com.example.studytimertracker.model.RestStore
+import com.example.studytimertracker.model.SessionActivity
 import com.example.studytimertracker.model.UserPreferences
-import com.example.studytimertracker.utils.DateUtils.getCurrentDate
+import com.example.studytimertracker.utils.DateTimeUtils.getCurrentDate
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.LocalTime
 
 class TimerViewModel(
     private val repository: TimerRepository,
@@ -29,7 +30,8 @@ class TimerViewModel(
 
     // LiveData for observing data changes in the UI
     val restStore: LiveData<RestStore> = repository.getRestStore().asLiveData()
-    val userPreferences: LiveData<UserPreferences> = repository.getUserPreferences().asLiveData()
+    private val userPreferences: LiveData<UserPreferences> =
+        repository.getUserPreferences().asLiveData()
     val activities: LiveData<List<Activity>> = repository.getAllActivities().asLiveData()
 
     val workTime: LiveData<Long> = MutableLiveData(0L)
@@ -51,28 +53,66 @@ class TimerViewModel(
     // Session-related variables
     private var currentSessionStartTime: Long? = null
     private var currentActivity: Activity? = null
+    private var activityStartTime: Long? = null
+    private val sessionActivities = mutableListOf<SessionActivity>()
+
+    // Activity variables
+    private var currentWorkActivity: Activity? = null
+    private var currentRestActivity: Activity? = null
 
 
     init {
         // Check and reset the rest store when the ViewModel is initialized
         viewModelScope.launch { checkAndResetRestStoreIfNeeded() }
+        // Schedule automatic session end check
+        scheduleDayStartCheck()
+    }
+
+    private fun scheduleDayStartCheck() {
+        viewModelScope.launch {
+            while (true) {
+                delay(1000L) // Check every second
+                checkDayStart()
+            }
+        }
+    }
+
+    private fun checkDayStart() {
+        val userPrefs = userPreferences.value ?: return
+        val dayStartTime = userPrefs.dayStartTime
+
+        val currentTime = LocalTime.now()
+        val startTime = LocalTime.parse(dayStartTime)
+
+        if (currentTime.isAfter(startTime) && _isSessionActive.value == true) {
+            endSession()
+        }
     }
 
     // Timer Logic
 
-    fun startSession(activity: Activity, isWork: Boolean) {
+    fun startSession(workActivity: Activity, restActivity: Activity) {
         currentSessionStartTime = System.currentTimeMillis()
-        currentActivity = activity
-        _isWorking.value = isWork
+        currentWorkActivity = workActivity
+        currentRestActivity = restActivity
+        _isWorking.value = true
         _isSessionActive.value = true
         _isPaused.value = false
+
+        activityStartTime = System.currentTimeMillis()
 
         startWorkTimer()
         startRestTimer()
     }
 
-    fun switchMode() {
-        _isWorking.value = !_isWorking.value!!
+    fun switchMode(workActivity: Activity?, restActivity: Activity?, switch: Boolean = true) {
+        if (workActivity != null) currentWorkActivity = workActivity
+        if (restActivity != null) currentRestActivity = restActivity
+
+        recordCurrentActivityTime()
+        if (switch) {
+            _isWorking.value = !_isWorking.value!!
+        }
         if (_isWorking.value == true) {
             // Resume work and accumulate rest
             startWorkTimer()
@@ -80,6 +120,13 @@ class TimerViewModel(
             // Consume rest and stop work
             startRestTimer()
         }
+    }
+
+    private fun stopTimers() {
+        workTimerJob?.cancel()
+        restTimerJob?.cancel()
+        workTimerJob = null
+        restTimerJob = null
     }
 
     private fun startWorkTimer() {
@@ -102,9 +149,15 @@ class TimerViewModel(
                     delay(1000L)
                     if (_isPaused.value == false) {
                         if (_isWorking.value == true) {
-                            accumulateRestTime(1000L)
+                            // Work mode, accumulate rest using the work activity multiplier
+                            currentWorkActivity?.let {
+                                accumulateRestTime(1000L, it.multiplier)
+                            }
                         } else {
-                            consumeRestTime(1000L)
+                            // Rest mode, consume rest using the rest activity multiplier
+                            currentRestActivity?.let {
+                                consumeRestTime(1000L, it.multiplier)
+                            }
                         }
                     }
                 }
@@ -121,17 +174,19 @@ class TimerViewModel(
         }
     }
 
-    private fun accumulateRestTime(timeIncrement: Long) {
+    private fun accumulateRestTime(timeIncrement: Long, multiplier: Float) {
         viewModelScope.launch {
-            repository.accumulateRestTime(timeIncrement)
-            (restTime as MutableLiveData).postValue(restTime.value!! + timeIncrement)
+            val restEarned = (timeIncrement * multiplier).toLong()
+            repository.accumulateRestTime(restEarned)
+            (restTime as MutableLiveData).postValue(restTime.value!! + restEarned)
         }
     }
 
-    private fun consumeRestTime(timeIncrement: Long) {
+    private fun consumeRestTime(timeIncrement: Long, multiplier: Float) {
         viewModelScope.launch {
-            repository.consumeRestTime(timeIncrement)
-            (restTime as MutableLiveData).postValue(restTime.value!! - timeIncrement)
+            val restConsumed = (timeIncrement * multiplier).toLong()
+            repository.consumeRestTime(restConsumed)
+            (restTime as MutableLiveData).postValue(restTime.value!! - restConsumed)
         }
     }
 
@@ -143,12 +198,9 @@ class TimerViewModel(
         _isPaused.value = false
     }
 
-    fun endSession() {
-        workTimerJob?.cancel()
-        restTimerJob?.cancel()
-        workTimerJob = null
-        restTimerJob = null
-
+    private fun endSession() {
+        stopTimers()
+        recordCurrentActivityTime()
         saveSessionData()
         resetSessionState()
     }
@@ -156,10 +208,8 @@ class TimerViewModel(
     // Session Data Handling
 
     private fun saveSessionData() {
-        val activity = currentActivity ?: return
         val startTime = currentSessionStartTime ?: return
         val endTime = System.currentTimeMillis()
-        val sessionDuration = endTime - startTime
 
         viewModelScope.launch {
             val restStore = repository.getRestStoreOnce()
@@ -167,66 +217,63 @@ class TimerViewModel(
                 date = getCurrentDate(),
                 sessionStartTime = startTime,
                 sessionEndTime = endTime,
-                totalTimeWorked = if (activity.type == ActivityType.WORK) sessionDuration else 0L,
-                restStoreAccumulated = restStore.totalRestTime,
-                restStoreUsed = if (activity.type == ActivityType.REST) sessionDuration else 0L
+                totalTimeWorked = workTime.value ?: 0L,
+                restStoreAccumulated = restStore.restStoreAccumulated,
+                restStoreUsed = restStore.restStoreUsed,
+                sessionActivities = sessionActivities
             )
             repository.insertHistory(history)
+            sessionActivities.clear()
 
-            updateActivityTimeSpent(activity, sessionDuration)
-            handleWorkOrRestTime(activity, sessionDuration)
+//            handleWorkOrRestTime(activity, sessionDuration)
         }
     }
 
-    private fun updateActivityTimeSpent(activity: Activity, sessionDuration: Long) {
-        viewModelScope.launch {
-            val updatedActivity = activity.copy(
-                totalTimeSpent = activity.totalTimeSpent + sessionDuration
-            )
-            repository.insertOrUpdateActivity(updatedActivity)
+    private fun recordCurrentActivityTime() {
+        val startTime = activityStartTime ?: return
+        val endTime = System.currentTimeMillis()
+        currentActivity?.let { activity ->
+            sessionActivities.add(SessionActivity(activity.id, startTime, endTime))
         }
+        // Update the start time for the next activity
+        activityStartTime = System.currentTimeMillis()
     }
-
-    private fun handleWorkOrRestTime(activity: Activity, sessionDuration: Long) {
-        viewModelScope.launch {
-            if (activity.type == ActivityType.WORK) {
-                accumulateRest(sessionDuration, activity.multiplier)
-//                updateDailyWorkTime()
-            } else if (activity.type == ActivityType.REST) {
-                consumeRest(sessionDuration, activity.multiplier)
-            }
-        }
-    }
+//    private fun handleWorkOrRestTime(activity: Activity, sessionDuration: Long) {
+//        viewModelScope.launch {
+//            if (activity.type == ActivityType.WORK) {
+//                accumulateRest(sessionDuration, activity.multiplier)
+////                updateDailyWorkTime()
+//            } else if (activity.type == ActivityType.REST) {
+//                consumeRest(sessionDuration, activity.multiplier)
+//            }
+//        }
+//    }
 
     // Rest Store Handling
 
-    private suspend fun accumulateRest(sessionDuration: Long, multiplier: Float) {
-        val restEarned = (sessionDuration * multiplier).toLong()
-
-        val restStore = repository.getRestStoreOnce()
-        val updatedRestStore = restStore.copy(
-            totalRestTime = restStore.totalRestTime + restEarned
-        )
-        repository.updateRestStore(updatedRestStore)
-    }
-
-    private suspend fun consumeRest(sessionDuration: Long, multiplier: Float) {
-        val restConsumed = (sessionDuration * multiplier).toLong()
-
-        val restStore = repository.getRestStoreOnce()
-        val newTotalRestTime = (restStore.totalRestTime - restConsumed).coerceAtLeast(0L)
-        val updatedRestStore = restStore.copy(
-            totalRestTime = newTotalRestTime
-        )
-        repository.updateRestStore(updatedRestStore)
-    }
+//    private suspend fun accumulateRest(sessionDuration: Long, multiplier: Float) {
+//        val restEarned = (sessionDuration * multiplier).toLong()
+//
+//        val restStore = repository.getRestStoreOnce()
+//        val updatedRestStore = restStore.copy(
+//            restTimeLeft = restStore.restTimeLeft + restEarned
+//        )
+//        repository.updateRestStore(updatedRestStore)
+//    }
+//
+//    private suspend fun consumeRest(sessionDuration: Long, multiplier: Float) {
+//        val restConsumed = (sessionDuration * multiplier).toLong()
+//
+//        val restStore = repository.getRestStoreOnce()
+//        val newTotalRestTime = (restStore.restTimeLeft - restConsumed).coerceAtLeast(0L)
+//        val updatedRestStore = restStore.copy(
+//            restTimeLeft = newTotalRestTime
+//        )
+//        repository.updateRestStore(updatedRestStore)
+//    }
 
     private suspend fun checkAndResetRestStoreIfNeeded() {
         repository.resetRestStoreForNewDay()
-    }
-
-    private fun updateDailyWorkTime() {
-        // TODO: Implement logic to update daily work time
     }
 
     // Helper Methods
@@ -234,24 +281,8 @@ class TimerViewModel(
     private fun resetSessionState() {
         currentActivity = null
         currentSessionStartTime = null
+        activityStartTime = null
         _isSessionActive.value = false
-    }
-
-    // UI Interactions
-
-    fun updateUserPreferences(
-        carryOverPercentage: Int? = null,
-        dayStartTime: String? = null,
-        dayEndTime: String? = null
-    ) = viewModelScope.launch {
-        val currentPreferences = repository.getUserPreferencesOnce() ?: UserPreferences()
-
-        val updatedPreferences = currentPreferences.copy(
-            carryOverPercentage = carryOverPercentage ?: currentPreferences.carryOverPercentage,
-            dayStartTime = dayStartTime ?: currentPreferences.dayStartTime,
-        )
-
-        repository.updateUserPreferences(updatedPreferences)
     }
 
     // https://developer.android.com/topic/libraries/architecture/viewmodel/viewmodel-factories

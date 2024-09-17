@@ -76,6 +76,8 @@ dependencies {
 
     implementation("com.kizitonwose.calendar:compose:2.6.0-beta04")
 
+    implementation("com.google.code.gson:gson:2.11.0")
+
     implementation(libs.androidx.room.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import com.example.studytimertracker.model.Activity
 import com.example.studytimertracker.model.History
 import com.example.studytimertracker.model.RestStore
@@ -11,8 +12,9 @@ import com.example.studytimertracker.model.UserPreferences
 
 @Database(
     entities = [Activity::class, RestStore::class, UserPreferences::class, History::class],
-    version = 4
+    version = 6
 )
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun activityDao(): ActivityDao
     abstract fun restStoreDao(): RestStoreDao

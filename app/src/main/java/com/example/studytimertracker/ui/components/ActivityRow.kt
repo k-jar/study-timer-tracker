@@ -22,6 +22,6 @@ fun ActivityRow(activity: Activity) {
     ) {
         Text(text = activity.name, style = MaterialTheme.typography.bodyLarge)
         Spacer(modifier = Modifier.weight(1f))
-        Text(text = "Multiplier: ${activity.multiplier}", style = MaterialTheme.typography.bodyMedium)
+        Text(text = "Multiplier: ${activity.multiplier}x", style = MaterialTheme.typography.bodyMedium)
     }
 }

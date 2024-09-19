@@ -79,18 +79,13 @@ fun HistoryCard(history: History) {
     val formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
 
     // Convert milliseconds to formatted time
-    val startTime = Instant.ofEpochMilli(history.sessionStartTime)
-        .atZone(ZoneId.systemDefault())
-        .format(formatter)
-
-    val endTime = Instant.ofEpochMilli(history.sessionEndTime)
+    val startTime = Instant.ofEpochMilli(history.dayStartTime)
         .atZone(ZoneId.systemDefault())
         .format(formatter)
 
     Card(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "Session Start: $startTime", style = MaterialTheme.typography.bodyLarge)
-            Text(text = "Session End: $endTime", style = MaterialTheme.typography.bodyLarge)
+            Text(text = "Day Start Time: $startTime", style = MaterialTheme.typography.bodyLarge)
             Text(text = "Total Time Worked: ${history.totalTimeWorked / 1000}s", style = MaterialTheme.typography.bodyLarge)
             Text(text = "Rest Accumulated: ${history.restStoreAccumulated / 1000}s", style = MaterialTheme.typography.bodyLarge)
             Text(text = "Rest Used: ${history.restStoreUsed / 1000}s", style = MaterialTheme.typography.bodyLarge)

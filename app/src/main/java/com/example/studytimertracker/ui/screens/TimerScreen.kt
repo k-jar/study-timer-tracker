@@ -4,11 +4,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +23,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.example.studytimertracker.model.Activity
 import com.example.studytimertracker.model.ActivityType
@@ -55,18 +64,31 @@ fun TimerScreen(viewModel: TimerViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(horizontal = 8.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Work activity card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            elevation = CardDefaults.cardElevation(4.dp),
+            shape = MaterialTheme.shapes.medium,
+        ){
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
         // Work Activity Dropdown
-        Text("Work Activity")
         DropdownMenu(
-            activities.filter { it.type == ActivityType.WORK },
-            selectedWorkActivity
+            label = "Work Activity",
+            activities = activities.filter { it.type == ActivityType.WORK },
+            selectedActivity = selectedWorkActivity
         ) { activity ->
             selectedWorkActivity = activity
             if (isSessionActive && isWorking) {
-                // Restart work timer with updated activity
                 viewModel.switchMode(selectedWorkActivity, selectedRestActivity, switch = false)
             }
         }
@@ -76,39 +98,83 @@ fun TimerScreen(viewModel: TimerViewModel) {
         // Timer for total work time
         Text(
             text = "Total Time Worked",
-            style = MaterialTheme.typography.titleLarge
+            style = MaterialTheme.typography.displaySmall,
+            textAlign = TextAlign.Center
         )
         Text(
             text = formatTime(workTime),
-            style = MaterialTheme.typography.titleLarge
+            style = MaterialTheme.typography.displayLarge,
+            textAlign = TextAlign.Center
         )
+        }
+    }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Rest Activity Dropdown
-        Text("Rest Activity")
-        DropdownMenu(
-            activities.filter { it.type == ActivityType.REST },
-            selectedRestActivity
-        ) { activity ->
-            selectedRestActivity = activity
-            if (isSessionActive && !isWorking) {
-                // Restart rest timer with updated activity
-                viewModel.switchMode(selectedWorkActivity, selectedRestActivity, switch = false)
+        // Rest Activity Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            elevation = CardDefaults.cardElevation(4.dp),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Rest Activity Dropdown
+                DropdownMenu(
+                    label = "Rest Activity",
+                    activities = activities.filter { it.type == ActivityType.REST },
+                    selectedActivity = selectedRestActivity
+                ) { activity ->
+                    selectedRestActivity = activity
+                    if (isSessionActive && !isWorking) {
+                        viewModel.switchMode(
+                            selectedWorkActivity,
+                            selectedRestActivity,
+                            switch = false
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Timer for rest budget
+                Text(
+                    text = "Rest Budget",
+                    style = MaterialTheme.typography.displaySmall,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = formatTime(totalRestTime),
+                    style = MaterialTheme.typography.displayLarge,
+                    textAlign = TextAlign.Center
+                )
+
+                // Work and rest multipliers
+                Text(
+                    text = buildAnnotatedString {
+                        append("↑")
+                        withStyle(style = SpanStyle(color = Color.Cyan)) {
+                            append(selectedWorkActivity?.multiplier?.toString() ?: "0")
+                            append("x")
+                        }
+                        append("     ↓")
+                        withStyle(style = SpanStyle(color = Color.Red)) {
+                            append(selectedRestActivity?.multiplier?.toString() ?: "0")
+                            append("x")
+                        }
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Timer for rest budget
-        Text(
-            text = "Rest Budget",
-            style = MaterialTheme.typography.titleLarge
-        )
-        Text(
-            text = formatTime(totalRestTime),
-            style = MaterialTheme.typography.titleLarge
-        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -156,18 +222,6 @@ fun TimerScreen(viewModel: TimerViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-//        // End session button
-//        if (isSessionActive && isPaused) {
-//            Button(
-//                onClick = {
-//                    viewModel.endSession()
-//                },
-//                colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.error)
-//            ) {
-//                Text("End Session")
-//            }
-//        }
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
+

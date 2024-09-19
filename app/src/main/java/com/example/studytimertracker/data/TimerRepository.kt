@@ -5,8 +5,8 @@ import com.example.studytimertracker.model.History
 import com.example.studytimertracker.model.RestStore
 import com.example.studytimertracker.model.UserPreferences
 import com.example.studytimertracker.utils.DateTimeUtils.getCurrentDate
-import com.example.studytimertracker.utils.DateTimeUtils.getCurrentTime
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalTime
 
 class TimerRepository(
     private val activityDao: ActivityDao,
@@ -39,7 +39,7 @@ class TimerRepository(
     // Update work time in the rest store
     suspend fun updateWorkTime(amount: Long) {
         val restStore = getRestStoreOnce() // Get the current RestStore
-        val updatedRestStore = restStore.copy(restTimeLeft = restStore.restTimeLeft + amount)
+        val updatedRestStore = restStore.copy(totalTimeWorked = restStore.totalTimeWorked + amount)
         updateRestStore(updatedRestStore)
     }
 
@@ -58,31 +58,24 @@ class TimerRepository(
     }
 
     // Reset rest store daily based on user preferences
-    suspend fun resetRestStoreForNewDay() {
+    suspend fun resetRestStore(carryOverPercentage: Int) {
         val restStore = getRestStoreOnce()
-        val userPreferences = getUserPreferencesOnce()
-        val lastResetDate = restStore.lastResetDate
         val currentDate = getCurrentDate()
 
-        // Check if the last reset was not today
-        if (lastResetDate != currentDate) {
-            val currentTime = getCurrentTime() // Get the current time as HH:mm
-            val dayStartTime = userPreferences.dayStartTime
+        // Calculate carryover
+        val carryOverRest = (restStore.restTimeLeft * carryOverPercentage / 100)
 
-            // Check if the current time is past the user's start of the day time
-            if (currentTime >= dayStartTime) {
-                // Calculate carryover
-                val carryOverPercentage = userPreferences.carryOverPercentage
-                val carryOverRest = (restStore.restTimeLeft * carryOverPercentage / 100)
+        // Reset the rest store with carryover and update the last reset date
+        val updatedRestStore = restStore.copy(
+            restTimeLeft = carryOverRest,
+            lastResetDate = currentDate
+        )
+        updateRestStore(updatedRestStore)
+    }
 
-                // Reset the rest store with carryover
-                val updatedRestStore = restStore.copy(
-                    restTimeLeft = carryOverRest,
-                    lastResetDate = currentDate
-                )
-                updateRestStore(updatedRestStore)
-            }
-        }
+    suspend fun getLastResetDate() : String {
+        val restStore = getRestStoreOnce()
+        return restStore.lastResetDate
     }
 
     // Insert history record
@@ -97,8 +90,18 @@ class TimerRepository(
     fun getUserPreferences(): Flow<UserPreferences> = userPreferencesDao.getUserPreferences()
 
     suspend fun getUserPreferencesOnce(): UserPreferences {
-        val userPreferences = userPreferencesDao.getUserPreferencesOnce()
-        return userPreferences ?: UserPreferences() // Return default UserPreferences if null
+        val prefs = userPreferencesDao.getUserPreferencesOnce()
+        return prefs ?: createDefaultUserPreferences() // Return defaults if null
+    }
+
+    private suspend fun createDefaultUserPreferences(): UserPreferences {
+        val defaultPreferences = UserPreferences(
+            id = 0,
+            dayStartTime = "07:00", // Default start time
+            carryOverPercentage = 50 // Default carry over percentage
+        )
+        userPreferencesDao.insertOrUpdate(defaultPreferences)
+        return defaultPreferences
     }
 
     suspend fun updateUserPreferences(preferences: UserPreferences) {

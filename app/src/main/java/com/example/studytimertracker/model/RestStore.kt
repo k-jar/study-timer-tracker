@@ -10,5 +10,6 @@ data class RestStore(
     val restStoreAccumulated: Long = 0L, // Total rest gained
     val restStoreUsed: Long = 0L,        // Total rest used
     val restTimeLeft: Long = restStoreAccumulated - restStoreUsed, // Remaining rest time
+    val totalTimeWorked: Long = 0L,      // Total time worked, different to rest time accumulated
     val lastResetDate: String = getCurrentDate()     // Date of the last reset
 )

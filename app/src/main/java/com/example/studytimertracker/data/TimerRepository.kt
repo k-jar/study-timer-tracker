@@ -24,6 +24,10 @@ class TimerRepository(
         activityDao.insertOrUpdate(activity)
     }
 
+    suspend fun deleteActivity(activity: Activity) {
+        activityDao.deleteActivity(activity)
+    }
+
     // RestStore operations
     fun getRestStore(): Flow<RestStore> = restStoreDao.getRestStore()
 

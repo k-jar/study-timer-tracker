@@ -33,16 +33,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
+import com.example.studytimertracker.model.Activity
 import com.example.studytimertracker.model.ActivityType
 import com.example.studytimertracker.ui.components.ActivityRow
 import com.example.studytimertracker.ui.components.AddActivityDialog
+import com.example.studytimertracker.ui.components.UpdateDeleteActivityDialog
 import com.example.studytimertracker.viewmodel.ActivitiesViewModel
 
 @Composable
 fun ActivitiesScreen(viewModel: ActivitiesViewModel) {
     val activities by viewModel.activities.observeAsState(emptyList())
-
-    var showDialog by remember { mutableStateOf(false) }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var activityToEdit by remember { mutableStateOf<Activity?>(null) }
 
     // Separate work and rest activities
     val workActivities = activities.filter { it.type == ActivityType.WORK }
@@ -90,7 +92,9 @@ fun ActivitiesScreen(viewModel: ActivitiesViewModel) {
                                 .heightIn(min = 100.dp, max = 200.dp)
                         ) {
                             items(workActivities) { activity ->
-                                ActivityRow(activity = activity)
+                                ActivityRow(activity = activity,
+                                    onClick = { activityToEdit = activity}
+                                )
                             }
                         }
 
@@ -140,7 +144,10 @@ fun ActivitiesScreen(viewModel: ActivitiesViewModel) {
                                 .heightIn(min = 100.dp, max = 200.dp)
                         ) {
                             items(restActivities) { activity ->
-                                ActivityRow(activity = activity)
+                                ActivityRow(
+                                    activity = activity,
+                                    onClick = { activityToEdit = activity }
+                                    )
                             }
                         }
 
@@ -153,19 +160,39 @@ fun ActivitiesScreen(viewModel: ActivitiesViewModel) {
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Tap on an activity to edit it",
+            color = Color.Gray,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
 
         // Add Activity Button
-        Button(onClick = { showDialog = true }) {
+        Button(onClick = { showAddDialog = true }) {
             Text("Add Activity")
         }
 
         // Dialog to add activity
-        if (showDialog) {
-            AddActivityDialog(onDismiss = { showDialog = false }) { name, multiplier, type ->
+        if (showAddDialog) {
+            AddActivityDialog(onDismiss = { showAddDialog = false }) { name, multiplier, type ->
                 viewModel.addActivity(name, multiplier, type) // Add the activity through the ViewModel
-                showDialog = false
+                showAddDialog = false
             }
+        }
+
+        // Dialog to update/delete activity
+        activityToEdit?.let { activity ->
+            UpdateDeleteActivityDialog(
+                activity = activity,
+                onDismiss = { activityToEdit = null },
+                onUpdate = { name, multiplier, type ->
+                    viewModel.updateActivity(activity.copy(name = name, multiplier = multiplier, type = type))
+                    activityToEdit = null
+                },
+                onDelete = {
+                    viewModel.deleteActivity(activity)
+                    activityToEdit = null
+                }
+            )
         }
     }
 }

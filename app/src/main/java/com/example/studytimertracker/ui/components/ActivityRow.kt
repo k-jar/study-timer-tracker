@@ -1,5 +1,6 @@
 package com.example.studytimertracker.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,10 +14,14 @@ import androidx.compose.ui.unit.dp
 import com.example.studytimertracker.model.Activity
 
 @Composable
-fun ActivityRow(activity: Activity) {
+fun ActivityRow(
+    activity: Activity,
+    onClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

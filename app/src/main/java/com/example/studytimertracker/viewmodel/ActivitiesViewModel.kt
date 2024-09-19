@@ -38,6 +38,13 @@ class ActivitiesViewModel(
         }
     }
 
+    // Function to delete an activity
+    fun deleteActivity(activity: Activity) {
+        viewModelScope.launch {
+            repository.deleteActivity(activity)
+        }
+    }
+
     // https://developer.android.com/topic/libraries/architecture/viewmodel/viewmodel-factories
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {

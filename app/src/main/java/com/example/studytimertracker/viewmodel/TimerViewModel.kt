@@ -69,6 +69,8 @@ class TimerViewModel(
             (workTime as MutableLiveData).postValue(restStore.totalTimeWorked) // Restore total time worked
             (restTime as MutableLiveData).postValue(restStore.restTimeLeft) // Restore rest time left)
 
+            loadSessionActivities()
+
             // Collect the user preferences flow
             repository.getUserPreferences().collect { userPrefs ->
                 userPrefs?.let {
@@ -94,6 +96,12 @@ class TimerViewModel(
                     endSession()
                 }
             }
+        }
+    }
+
+    private fun loadSessionActivities() {
+        viewModelScope.launch {
+            _sessionActivities.value = repository.getAllSessionActivities()
         }
     }
 
@@ -291,7 +299,11 @@ class TimerViewModel(
     private fun addSessionActivity(activityId: Int, startTime: Long? = activityStartTime, endTime: Long = System.currentTimeMillis()) {
         // Ensure startTime is not null before proceeding
         startTime?.let {
-            val newActivity = SessionActivity(activityId, it, endTime)
+            val newActivity = SessionActivity(activityId = activityId, startTime = it, endTime = endTime)
+
+            viewModelScope.launch {
+                repository.insertSessionActivity(newActivity)
+            }
 
             // Append new activity to the sessionActivities list
             val updatedActivities = _sessionActivities.value.orEmpty().toMutableList()

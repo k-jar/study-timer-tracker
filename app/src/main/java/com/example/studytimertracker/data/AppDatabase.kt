@@ -8,11 +8,12 @@ import androidx.room.TypeConverters
 import com.example.studytimertracker.model.Activity
 import com.example.studytimertracker.model.History
 import com.example.studytimertracker.model.RestStore
+import com.example.studytimertracker.model.SessionActivity
 import com.example.studytimertracker.model.UserPreferences
 
 @Database(
-    entities = [Activity::class, RestStore::class, UserPreferences::class, History::class],
-    version = 8
+    entities = [Activity::class, RestStore::class, UserPreferences::class, History::class, SessionActivity::class],
+    version = 9
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -20,6 +21,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun restStoreDao(): RestStoreDao
     abstract fun userPreferencesDao(): UserPreferencesDao
     abstract fun historyDao(): HistoryDao
+    abstract fun sessionActivityDao(): SessionActivityDao
 
     companion object {
         @Volatile

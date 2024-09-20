@@ -14,7 +14,8 @@ class StudyTimerTrackerApp : Application() {
             activityDao = database.activityDao(),
             restStoreDao = database.restStoreDao(),
             userPreferencesDao = database.userPreferencesDao(),
-            historyDao = database.historyDao()
+            historyDao = database.historyDao(),
+            sessionActivityDao = database.sessionActivityDao()
         )
     }
 }

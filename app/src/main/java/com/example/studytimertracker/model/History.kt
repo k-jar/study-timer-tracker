@@ -14,8 +14,3 @@ data class History(
     val sessionActivities: List<SessionActivity> // List of activities and their time spent
 )
 
-data class SessionActivity(
-    val activityId: Int,  // Reference to the Activity
-    val startTime: Long,    // Start time of the activity in milliseconds
-    val endTime: Long,      // End time of the activity in milliseconds
-)

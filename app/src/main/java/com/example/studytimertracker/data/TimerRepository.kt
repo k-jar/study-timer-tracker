@@ -3,6 +3,7 @@ package com.example.studytimertracker.data
 import com.example.studytimertracker.model.Activity
 import com.example.studytimertracker.model.History
 import com.example.studytimertracker.model.RestStore
+import com.example.studytimertracker.model.SessionActivity
 import com.example.studytimertracker.model.UserPreferences
 import com.example.studytimertracker.utils.DateTimeUtils.getCurrentDate
 import kotlinx.coroutines.flow.Flow
@@ -12,7 +13,8 @@ class TimerRepository(
     private val activityDao: ActivityDao,
     private val restStoreDao: RestStoreDao,
     private val userPreferencesDao: UserPreferencesDao,
-    private val historyDao: HistoryDao
+    private val historyDao: HistoryDao,
+    private val sessionActivityDao: SessionActivityDao
 ) {
 
     // Activity operations
@@ -90,6 +92,8 @@ class TimerRepository(
     // Retrieve all histories
     fun getAllHistories(): Flow<List<History>> = historyDao.getAllHistories()
 
+    fun getHistoryByDate(date: String): Flow<List<History>> = historyDao.getHistoryByDate(date)
+
     // UserPreferences operations
     fun getUserPreferences(): Flow<UserPreferences> = userPreferencesDao.getUserPreferences()
 
@@ -112,6 +116,12 @@ class TimerRepository(
         userPreferencesDao.insertOrUpdate(preferences)
     }
 
-    fun getHistoryByDate(date: String): Flow<List<History>> = historyDao.getHistoryByDate(date)
+    suspend fun insertSessionActivity(sessionActivity: SessionActivity) {
+        sessionActivityDao.insertSessionActivity(sessionActivity)
+    }
+
+    suspend fun getAllSessionActivities(): List<SessionActivity> {
+        return sessionActivityDao.getAllSessionActivities()
+    }
 
 }

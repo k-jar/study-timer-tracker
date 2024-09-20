@@ -1,7 +1,9 @@
 package com.example.studytimertracker.utils
 
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
@@ -27,4 +29,10 @@ object DateTimeUtils {
 
         return String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
     }
+
+    fun formatTimestamp(timeMillis: Long): String {
+        val formatter = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault())
+        return formatter.format(Instant.ofEpochMilli(timeMillis))
+    }
+
 }

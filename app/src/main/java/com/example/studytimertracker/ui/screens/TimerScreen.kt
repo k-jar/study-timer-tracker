@@ -1,5 +1,6 @@
 package com.example.studytimertracker.ui.screens
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,6 +9,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -33,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.example.studytimertracker.model.Activity
 import com.example.studytimertracker.model.ActivityType
 import com.example.studytimertracker.ui.components.DropdownMenu
+import com.example.studytimertracker.ui.components.SessionActivityItem
 import com.example.studytimertracker.utils.DateTimeUtils.formatTime
 import com.example.studytimertracker.viewmodel.TimerViewModel
 
@@ -41,6 +48,7 @@ fun TimerScreen(viewModel: TimerViewModel) {
     // Observe LiveData or Flow from ViewModel
     val restStore by viewModel.restStore.observeAsState()
     val activities by viewModel.activities.observeAsState(emptyList())
+    val sessionActivities by viewModel.sessionActivities.observeAsState(emptyList())
     val workTime by viewModel.workTime.observeAsState(0L)
     val isSessionActive by viewModel.isSessionActive.observeAsState(false)
     val isWorking by viewModel.isWorking.observeAsState(false)
@@ -61,167 +69,191 @@ fun TimerScreen(viewModel: TimerViewModel) {
     // Total rest time (for Rest Budget)
     val totalRestTime = restStore?.restTimeLeft ?: 0L
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 8.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Work activity card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            elevation = CardDefaults.cardElevation(4.dp),
-            shape = MaterialTheme.shapes.medium,
-        ){
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-        // Work Activity Dropdown
-        DropdownMenu(
-            label = "Work Activity",
-            activities = activities.filter { it.type == ActivityType.WORK },
-            selectedActivity = selectedWorkActivity
-        ) { activity ->
-            selectedWorkActivity = activity
-            if (isSessionActive && isWorking) {
-                viewModel.switchMode(selectedWorkActivity, selectedRestActivity, switch = false)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Timer for total work time
-        Text(
-            text = "Total Time Worked",
-            style = MaterialTheme.typography.displaySmall,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = formatTime(workTime),
-            style = MaterialTheme.typography.displayLarge,
-            textAlign = TextAlign.Center
-        )
-        }
-    }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Rest Activity Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            elevation = CardDefaults.cardElevation(4.dp),
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Column(
+        item {
+            // Work activity card
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(8.dp),
+                elevation = CardDefaults.cardElevation(4.dp),
+                shape = MaterialTheme.shapes.medium,
             ) {
-                // Rest Activity Dropdown
-                DropdownMenu(
-                    label = "Rest Activity",
-                    activities = activities.filter { it.type == ActivityType.REST },
-                    selectedActivity = selectedRestActivity
-                ) { activity ->
-                    selectedRestActivity = activity
-                    if (isSessionActive && !isWorking) {
-                        viewModel.switchMode(
-                            selectedWorkActivity,
-                            selectedRestActivity,
-                            switch = false
-                        )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Work Activity Dropdown
+                    DropdownMenu(
+                        label = "Work Activity",
+                        activities = activities.filter { it.type == ActivityType.WORK },
+                        selectedActivity = selectedWorkActivity
+                    ) { activity ->
+                        selectedWorkActivity = activity
+                        if (isSessionActive && isWorking) {
+                            viewModel.switchMode(
+                                selectedWorkActivity,
+                                selectedRestActivity,
+                                switch = false
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Timer for total work time
+                    Text(
+                        text = "Total Time Worked",
+                        style = MaterialTheme.typography.displaySmall,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = formatTime(workTime),
+                        style = MaterialTheme.typography.displayLarge,
+                        textAlign = TextAlign.Center
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Timer for rest budget
-                Text(
-                    text = "Rest Budget",
-                    style = MaterialTheme.typography.displaySmall,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = formatTime(totalRestTime),
-                    style = MaterialTheme.typography.displayLarge,
-                    textAlign = TextAlign.Center
-                )
-
-                // Work and rest multipliers
-                Text(
-                    text = buildAnnotatedString {
-                        append("↑")
-                        withStyle(style = SpanStyle(color = Color.Cyan)) {
-                            append(selectedWorkActivity?.multiplier?.toString() ?: "0")
-                            append("x")
-                        }
-                        append("     ↓")
-                        withStyle(style = SpanStyle(color = Color.Red)) {
-                            append(selectedRestActivity?.multiplier?.toString() ?: "0")
-                            append("x")
-                        }
-                    },
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold
-                )
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Start Day and Switch Buttons
-        Row {
-            Button(
-                onClick = {
-                    if (!isSessionActive) {
-                        val selectedWork = selectedWorkActivity ?: return@Button
-                        val selectedRest = selectedRestActivity ?: return@Button
-                        viewModel.startSession(selectedWork, selectedRest)
-                    } else {
-                        viewModel.switchMode(selectedWorkActivity, selectedRestActivity, switch = true)
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isSessionActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
-                )
+        item {
+            // Rest Activity Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                elevation = CardDefaults.cardElevation(4.dp),
+                shape = MaterialTheme.shapes.medium
             ) {
-                Text(
-                    if (!isSessionActive) "Start Day"
-                    else if (isWorking) "Switch to Rest"
-                    else "Switch to Work"
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Rest Activity Dropdown
+                    DropdownMenu(
+                        label = "Rest Activity",
+                        activities = activities.filter { it.type == ActivityType.REST },
+                        selectedActivity = selectedRestActivity
+                    ) { activity ->
+                        selectedRestActivity = activity
+                        if (isSessionActive && !isWorking) {
+                            viewModel.switchMode(
+                                selectedWorkActivity,
+                                selectedRestActivity,
+                                switch = false
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Timer for rest budget
+                    Text(
+                        text = "Rest Budget",
+                        style = MaterialTheme.typography.displaySmall,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = formatTime(totalRestTime),
+                        style = MaterialTheme.typography.displayLarge,
+                        textAlign = TextAlign.Center
+                    )
+
+                    // Work and rest multipliers
+                    Text(
+                        text = buildAnnotatedString {
+                            append("↑")
+                            withStyle(style = SpanStyle(color = Color.Cyan)) {
+                                append(selectedWorkActivity?.multiplier?.toString() ?: "0")
+                                append("x")
+                            }
+                            append("     ↓")
+                            withStyle(style = SpanStyle(color = Color.Red)) {
+                                append(selectedRestActivity?.multiplier?.toString() ?: "0")
+                                append("x")
+                            }
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Pause/Resume Button
-            if (isSessionActive) {
+        }
+        item {
+            // Start Day and Switch Buttons
+            Row {
                 Button(
                     onClick = {
-                        if (isPaused) {
-                            viewModel.resumeTimer()
+                        if (!isSessionActive) {
+                            val selectedWork = selectedWorkActivity ?: return@Button
+                            val selectedRest = selectedRestActivity ?: return@Button
+                            viewModel.startSession(selectedWork, selectedRest)
                         } else {
-                            viewModel.pauseTimer()
+                            viewModel.switchMode(
+                                selectedWorkActivity,
+                                selectedRestActivity,
+                                switch = true
+                            )
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.error)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isSessionActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                    )
                 ) {
-                    Text(if (isPaused) "Resume" else "Pause")
+                    Text(
+                        if (!isSessionActive) "Start Day"
+                        else if (isWorking) "Switch to Rest"
+                        else "Switch to Work"
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Pause/Resume Button
+                if (isSessionActive) {
+                    Button(
+                        onClick = {
+                            if (isPaused) {
+                                viewModel.resumeTimer()
+                            } else {
+                                viewModel.pauseTimer()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.error)
+                    ) {
+                        Text(if (isPaused) "Resume" else "Pause")
+                    }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
+        item {
+            Text(
+                text = "Activity Log",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+        items(sessionActivities) { sessionActivity ->
+            // Pause has activityId = -1
+            val activity = if (sessionActivity.activityId == -1) {
+                null
+            } else {
+                activities.find { it.id == sessionActivity.activityId } // Look up the activity
+            }
+            SessionActivityItem(sessionActivity = sessionActivity, activity = activity)
+        }
+        }
     }
-}
+
 

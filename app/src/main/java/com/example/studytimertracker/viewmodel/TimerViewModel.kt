@@ -54,7 +54,9 @@ class TimerViewModel(
     private var currentSessionStartTime: Long? = null
     private var currentActivity: Activity? = null
     private var activityStartTime: Long? = null
-    private val sessionActivities = mutableListOf<SessionActivity>()
+
+    private val _sessionActivities = MutableLiveData<List<SessionActivity>>(mutableListOf())
+    val sessionActivities: LiveData<List<SessionActivity>> = _sessionActivities
 
     // Activity variables
     private var currentWorkActivity: Activity? = null
@@ -115,7 +117,7 @@ class TimerViewModel(
         if (workActivity != null) currentWorkActivity = workActivity
         if (restActivity != null) currentRestActivity = restActivity
 
-        recordCurrentActivityTime()
+        recordAndAddActivity()
         if (switch) {
             _isWorking.value = !_isWorking.value!!
         }
@@ -197,18 +199,43 @@ class TimerViewModel(
     }
 
     fun pauseTimer() {
+        if (_isPaused.value == true) return
+
+        // Record the current activity (work/rest) before pausing
+        recordAndAddActivity()
+
+        // Set session to paused, but don't log it yet
         _isPaused.value = true
+
+        // Set pause start time
+        activityStartTime = System.currentTimeMillis()
     }
 
     fun resumeTimer() {
+        if (_isPaused.value == false) return // Already running
+
+        // Log the pause activity before resuming
+        val endTime = System.currentTimeMillis()
+        addSessionActivity(activityId = -1, startTime = activityStartTime, endTime = endTime)
+
+        // Set session back to active
         _isPaused.value = false
+
+        // Set new start time for tracking resumed activities
+        activityStartTime = System.currentTimeMillis()
     }
 
-    suspend fun endSession() {
+    private suspend fun endSession() {
         val userPrefs = repository.getUserPreferencesOnce()
-        println("UserPrefs: $userPrefs")
         stopTimers()
-        recordCurrentActivityTime()
+
+        // If the session ends while paused, log the pause activity
+        if (_isPaused.value == true) {
+            val endTime = System.currentTimeMillis()
+            addSessionActivity(activityId = -1, startTime = activityStartTime, endTime = endTime)
+        }
+
+        recordAndAddActivity()
         saveSessionData()
 
         viewModelScope.launch {
@@ -225,7 +252,6 @@ class TimerViewModel(
 
     private fun saveSessionData() {
         val startTime = currentSessionStartTime ?: return
-        val endTime = System.currentTimeMillis()
 
         viewModelScope.launch {
             val restStore = repository.getRestStoreOnce()
@@ -235,24 +261,44 @@ class TimerViewModel(
                 totalTimeWorked = workTime.value ?: 0L,
                 restStoreAccumulated = restStore.restStoreAccumulated,
                 restStoreUsed = restStore.restStoreUsed,
-                sessionActivities = sessionActivities
+                sessionActivities = _sessionActivities.value ?: emptyList()
             )
             repository.insertHistory(history)
-            sessionActivities.clear()
+            _sessionActivities.value = emptyList()
         }
     }
 
-    private fun recordCurrentActivityTime() {
+    private fun recordAndAddActivity() {
         val startTime = activityStartTime ?: return
         val endTime = System.currentTimeMillis()
-        currentActivity?.let { activity ->
-            sessionActivities.add(SessionActivity(activity.id, startTime, endTime))
+
+        // Determine the current activity (work or rest)
+        val currentActivity = if (_isPaused.value == false) {
+            if (_isWorking.value == true) currentWorkActivity else currentRestActivity
+        } else {
+            null
         }
-        // Update the start time for the next activity
+
+        // Add the current activity (if there is one) to the session log
+        currentActivity?.let { activity ->
+            addSessionActivity(activity.id, startTime, endTime)
+        }
+
+        // Update the start time for the next activity or pause
         activityStartTime = System.currentTimeMillis()
     }
 
-    // Helper Methods
+    private fun addSessionActivity(activityId: Int, startTime: Long? = activityStartTime, endTime: Long = System.currentTimeMillis()) {
+        // Ensure startTime is not null before proceeding
+        startTime?.let {
+            val newActivity = SessionActivity(activityId, it, endTime)
+
+            // Append new activity to the sessionActivities list
+            val updatedActivities = _sessionActivities.value.orEmpty().toMutableList()
+            updatedActivities.add(newActivity)
+            _sessionActivities.value = updatedActivities
+        }
+    }
 
     private fun resetSessionState() {
         currentActivity = null

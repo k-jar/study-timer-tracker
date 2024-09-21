@@ -1,8 +1,6 @@
 package com.example.studytimertracker.ui.screens
 
-import android.app.DatePickerDialog
 import androidx.compose.foundation.layout.Column
-
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -17,30 +15,33 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.studytimertracker.model.Activity
 import com.example.studytimertracker.model.History
+import com.example.studytimertracker.model.SessionActivity
+import com.example.studytimertracker.ui.components.ActivityLogDialog
 import com.example.studytimertracker.ui.components.HistoryCalendar
 import com.example.studytimertracker.viewmodel.HistoryViewModel
 import com.kizitonwose.calendar.core.CalendarDay
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Calendar
 import java.util.Locale
 
 @Composable
-fun HistoryScreen(viewModel: HistoryViewModel) {
+fun HistoryScreen(viewModel: HistoryViewModel, activities: List<Activity>) {
     // State for selected date
     val selectedDate = remember { mutableStateOf<CalendarDay?>(null) }
 
     // Observe the history for the selected day
     val historyList by viewModel.getHistoryByDate(selectedDate.value?.date.toString()).observeAsState(emptyList())
+
+    val showActivityLogDialog by viewModel.showActivityLogDialog.observeAsState(false)
+    val selectedActivities by viewModel.selectedHistoryActivities.observeAsState(emptyList())
+
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         // Calendar Section
@@ -60,22 +61,28 @@ fun HistoryScreen(viewModel: HistoryViewModel) {
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(historyList) { history ->
-                HistoryCard(history)
+                HistoryCard(
+                    history=history,
+                    onShowActivityLog = { sessionActivities -> viewModel.showActivityLog(sessionActivities) }
+                )
             }
         }
 
-        // Button for more details
-        Button(
-            onClick = { /* TODO: Show more details */ },
-            modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 16.dp)
-        ) {
-            Text("More Details")
+        if (showActivityLogDialog) {
+            ActivityLogDialog(
+                sessionActivities = selectedActivities,
+                activities = activities,
+                onDismiss = { viewModel.dismissActivityLog() }
+            )
         }
     }
 }
 
 @Composable
-fun HistoryCard(history: History) {
+fun HistoryCard(
+    history: History,
+    onShowActivityLog: (List<SessionActivity>) -> Unit
+) {
     val formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
 
     // Convert milliseconds to formatted time
@@ -89,30 +96,12 @@ fun HistoryCard(history: History) {
             Text(text = "Total Time Worked: ${history.totalTimeWorked / 1000}s", style = MaterialTheme.typography.bodyLarge)
             Text(text = "Rest Accumulated: ${history.restStoreAccumulated / 1000}s", style = MaterialTheme.typography.bodyLarge)
             Text(text = "Rest Used: ${history.restStoreUsed / 1000}s", style = MaterialTheme.typography.bodyLarge)
-        }
-    }
-}
+            Spacer(modifier = Modifier.height(8.dp))
 
-@Composable
-fun DatePickerDialog(onDateSelected: (String) -> Unit, onDismiss: () -> Unit) {
-    // Get the current context to display the dialog
-    val context = LocalContext.current
-    val calendar = Calendar.getInstance()
-
-    // LaunchedEffect ensures this code is executed in a proper lifecycle context
-    LaunchedEffect(Unit) {
-        DatePickerDialog(
-            context,
-            { _, year, month, dayOfMonth ->
-                val formattedDate = "$dayOfMonth-${month + 1}-$year"
-                onDateSelected(formattedDate)
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        ).apply {
-            setOnDismissListener { onDismiss() }
-            show()
+            // Button to open activity log dialog
+            Button(onClick = { onShowActivityLog(history.sessionActivities) }) {
+                Text(text = "Show Activity Log")
+            }
         }
     }
 }

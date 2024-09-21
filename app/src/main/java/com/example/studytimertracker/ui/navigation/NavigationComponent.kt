@@ -33,7 +33,7 @@ fun NavigationComponent(
     NavHost(navController = navController, startDestination = Screen.Timer.route, modifier = modifier) {
         composable(Screen.Timer.route) { TimerScreen(timerViewModel) }
         composable(Screen.Activities.route) { ActivitiesScreen(activityViewModel) }
-        composable(Screen.History.route) { HistoryScreen(historyViewModel) }
+        composable(Screen.History.route) { HistoryScreen(historyViewModel, activityViewModel.activities.value ?: emptyList()) }
         composable(Screen.Settings.route) { SettingsScreen(settingsViewModel) }
     }
 }

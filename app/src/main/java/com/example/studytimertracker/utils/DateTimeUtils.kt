@@ -2,6 +2,7 @@ package com.example.studytimertracker.utils
 
 import java.text.SimpleDateFormat
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -35,4 +36,15 @@ object DateTimeUtils {
         return formatter.format(Instant.ofEpochMilli(timeMillis))
     }
 
+    fun getPreviousDay(currentDateString: String): String {
+        // Parse the current date string
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val currentDate = LocalDate.parse(currentDateString, formatter)
+
+        // Subtract one day
+        val previousDate = currentDate.minusDays(1)
+
+        // Return as formatted string
+        return previousDate.format(formatter)
+    }
 }

@@ -19,6 +19,7 @@ import com.example.studytimertracker.model.RestStore
 import com.example.studytimertracker.model.SessionActivity
 import com.example.studytimertracker.model.UserPreferences
 import com.example.studytimertracker.utils.DateTimeUtils.getCurrentDate
+import com.example.studytimertracker.utils.DateTimeUtils.getPreviousDay
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -310,7 +311,7 @@ class TimerViewModel(
         viewModelScope.launch {
             val restStore = repository.getRestStoreOnce()
             val history = History(
-                date = getCurrentDate(),
+                date = getPreviousDay(getCurrentDate()),
                 dayStartTime = startTime,
                 totalTimeWorked = workTime.value ?: 0L,
                 restStoreAccumulated = restStore.restStoreAccumulated,

@@ -22,7 +22,6 @@ import com.example.studytimertracker.utils.DateTimeUtils.getCurrentDate
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.time.LocalTime
 
 class TimerViewModel(
     private val repository: TimerRepository,
@@ -127,12 +126,10 @@ class TimerViewModel(
             while (true) {
                 delay(1000L) // Check every 5 minutes
 
-                val currentTime = LocalTime.now() // Get the current time
-                val dayStartTime = LocalTime.parse(userPrefs.dayStartTime)
                 val lastResetDate = repository.getLastResetDate()
 
                 // Check if it's a new day and after the specified start time
-                if (currentTime.isAfter(dayStartTime) && lastResetDate != getCurrentDate()) {
+                if (lastResetDate != getCurrentDate()) {
                     endSession()
                 }
             }
@@ -300,9 +297,9 @@ class TimerViewModel(
         viewModelScope.launch {
             repository.resetRestStore(userPrefs.carryOverPercentage)
             repository.updateWorkTime(0L)
+            resetSessionState()
         }
 
-        resetSessionState()
     }
 
     // Session Data Handling
@@ -365,11 +362,16 @@ class TimerViewModel(
         }
     }
 
-    private fun resetSessionState() {
+    private suspend fun resetSessionState() {
         currentActivity = null
         currentSessionStartTime = null
         activityStartTime = null
+
+        val restStore = repository.getRestStoreOnce()
+
         (workTime as MutableLiveData).postValue(0L)
+        // Update rest time to the carried over rest time
+        (restTime as MutableLiveData).postValue(restStore.restTimeLeft)
 
         _sessionActivities.value = emptyList()
 

@@ -35,6 +35,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.example.studytimertracker.model.Activity
 import com.example.studytimertracker.model.ActivityType
+import com.example.studytimertracker.ui.components.ActivityLogDialog
 import com.example.studytimertracker.ui.components.DropdownMenu
 import com.example.studytimertracker.ui.components.SessionActivityItem
 import com.example.studytimertracker.utils.DateTimeUtils.formatTime
@@ -54,6 +55,7 @@ fun TimerScreen(viewModel: TimerViewModel) {
     // UI state management
     var selectedWorkActivity by remember { mutableStateOf<Activity?>(null) }
     var selectedRestActivity by remember { mutableStateOf<Activity?>(null) }
+    var showActivityLog by remember { mutableStateOf(false) }
 
     // Initialize the first activity as default
     LaunchedEffect(activities) {
@@ -234,20 +236,17 @@ fun TimerScreen(viewModel: TimerViewModel) {
         }
 
         item {
-            Text(
-                text = "Activity Log",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-        }
-        items(sessionActivities) { sessionActivity ->
-            // Pause has activityId = -1
-            val activity = if (sessionActivity.activityId == -1) {
-                null
-            } else {
-                activities.find { it.id == sessionActivity.activityId } // Look up the activity
+            Button(onClick = { showActivityLog = true }) {
+                Text("Show Activity Log")
             }
-            SessionActivityItem(sessionActivity = sessionActivity, activity = activity)
+
+            if (showActivityLog) {
+                ActivityLogDialog(
+                    sessionActivities = sessionActivities,
+                    activities = activities,
+                    onDismiss = { showActivityLog = false }
+                )
+            }
         }
         }
     }

@@ -13,7 +13,7 @@ import com.example.studytimertracker.model.UserPreferences
 
 @Database(
     entities = [Activity::class, RestStore::class, UserPreferences::class, History::class, SessionActivity::class],
-    version = 10
+    version = 11
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

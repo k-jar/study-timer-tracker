@@ -9,8 +9,12 @@ import com.example.studytimertracker.model.SessionActivity
 
 @Dao
 interface SessionActivityDao {
+
     @Query("SELECT * FROM session_activities")
     suspend fun getAllSessionActivities(): List<SessionActivity>
+
+    @Query("SELECT * FROM session_activities WHERE date = :currentDate")
+    suspend fun getSessionActivitiesForDay(currentDate: String): List<SessionActivity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSessionActivity(activity: SessionActivity)

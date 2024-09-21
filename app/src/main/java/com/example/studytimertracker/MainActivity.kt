@@ -13,7 +13,10 @@ import com.example.studytimertracker.viewmodel.TimerViewModel
 
 class MainActivity : ComponentActivity() {
 
-    private val timerViewModel: TimerViewModel by viewModels { TimerViewModel.Factory }
+    private val timerViewModel: TimerViewModel by viewModels {
+        val app = application as StudyTimerTrackerApp
+        TimerViewModel.provideFactory(app.timerRepository, app.dataStore)
+    }
     private val activityViewModel: ActivitiesViewModel by viewModels { ActivitiesViewModel.Factory }
     private val historyViewModel: HistoryViewModel by viewModels { HistoryViewModel.Factory }
     private val settingsViewModel: SettingsViewModel by viewModels { SettingsViewModel.Factory }

@@ -1,16 +1,17 @@
 package com.example.studytimertracker.viewmodel
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
-import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.studytimertracker.StudyTimerTrackerApp
 import com.example.studytimertracker.data.TimerRepository
 import com.example.studytimertracker.model.Activity
 import com.example.studytimertracker.model.History
@@ -25,17 +26,25 @@ import java.time.LocalTime
 
 class TimerViewModel(
     private val repository: TimerRepository,
-    private val savedStateHandle: SavedStateHandle
+    private val dataStore: DataStore<Preferences>
 ) : ViewModel() {
+
+    private object SessionPreferences {
+        val IS_SESSION_ACTIVE = booleanPreferencesKey("is_session_active")
+        val IS_WORKING = booleanPreferencesKey("is_working")
+        val IS_PAUSED = booleanPreferencesKey("is_paused")
+    }
 
     // LiveData for observing data changes in the UI
     val restStore: LiveData<RestStore> = repository.getRestStore().asLiveData()
+
     private val userPreferences: LiveData<UserPreferences> =
         repository.getUserPreferences().asLiveData()
+
     val activities: LiveData<List<Activity>> = repository.getAllActivities().asLiveData()
 
     val workTime: LiveData<Long> = MutableLiveData(0L)
-    private val restTime: LiveData<Long> = MutableLiveData(0L)
+    val restTime: LiveData<Long> = MutableLiveData(0L)
 
     // LiveData or StateFlow for session-related variables
     private val _isWorking = MutableLiveData(false)
@@ -65,18 +74,49 @@ class TimerViewModel(
 
     init {
         viewModelScope.launch {
+            // Collect data store in a separate coroutine
+            launch {
+                dataStore.data.collect { preferences ->
+                    _isWorking.value = preferences[SessionPreferences.IS_WORKING] ?: false
+                    _isSessionActive.value =
+                        preferences[SessionPreferences.IS_SESSION_ACTIVE] ?: false
+                    _isPaused.value = preferences[SessionPreferences.IS_PAUSED] ?: false
+                }
+            }
+
             val restStore = repository.getRestStoreOnce()
             (workTime as MutableLiveData).postValue(restStore.totalTimeWorked) // Restore total time worked
-            (restTime as MutableLiveData).postValue(restStore.restTimeLeft) // Restore rest time left)
+            (restTime as MutableLiveData).postValue(restStore.restTimeLeft)
 
             loadSessionActivities()
 
             // Collect the user preferences flow
             repository.getUserPreferences().collect { userPrefs ->
-                userPrefs?.let {
-                    // Start checking the session end based on day start if userPrefs is not null
-                    scheduleDayStartCheck(it)
-                }
+                scheduleDayStartCheck(userPrefs)
+            }
+        }
+    }
+
+    private fun saveIsWorkingState(isWorking: Boolean) {
+        viewModelScope.launch {
+            dataStore.edit { preferences ->
+                preferences[SessionPreferences.IS_WORKING] = isWorking
+            }
+        }
+    }
+
+    private fun saveIsPausedState(isPaused: Boolean) {
+        viewModelScope.launch {
+            dataStore.edit { preferences ->
+                preferences[SessionPreferences.IS_PAUSED] = isPaused
+            }
+        }
+    }
+
+    private fun saveIsSessionActiveState(isActive: Boolean) {
+        viewModelScope.launch {
+            dataStore.edit { preferences ->
+                preferences[SessionPreferences.IS_SESSION_ACTIVE] = isActive
             }
         }
     }
@@ -101,7 +141,9 @@ class TimerViewModel(
 
     private fun loadSessionActivities() {
         viewModelScope.launch {
-            _sessionActivities.value = repository.getAllSessionActivities()
+            val currentDate = getCurrentDate()
+            val savedActivities = repository.getSessionActivitiesForDay(currentDate)
+            _sessionActivities.postValue(savedActivities)
         }
     }
 
@@ -111,9 +153,13 @@ class TimerViewModel(
         currentSessionStartTime = System.currentTimeMillis()
         currentWorkActivity = workActivity
         currentRestActivity = restActivity
+
         _isWorking.value = true
         _isSessionActive.value = true
         _isPaused.value = false
+        saveIsWorkingState(true)
+        saveIsSessionActiveState(true)
+        saveIsPausedState(false)
 
         activityStartTime = System.currentTimeMillis()
 
@@ -128,6 +174,7 @@ class TimerViewModel(
         recordAndAddActivity()
         if (switch) {
             _isWorking.value = !_isWorking.value!!
+            saveIsWorkingState(_isWorking.value ?: false)
         }
         if (_isWorking.value == true) {
             // Resume work and accumulate rest
@@ -215,6 +262,8 @@ class TimerViewModel(
         // Set session to paused, but don't log it yet
         _isPaused.value = true
 
+        saveIsPausedState(true)
+
         // Set pause start time
         activityStartTime = System.currentTimeMillis()
     }
@@ -228,6 +277,8 @@ class TimerViewModel(
 
         // Set session back to active
         _isPaused.value = false
+
+        saveIsPausedState(false)
 
         // Set new start time for tracking resumed activities
         activityStartTime = System.currentTimeMillis()
@@ -247,9 +298,7 @@ class TimerViewModel(
         saveSessionData()
 
         viewModelScope.launch {
-            if (userPrefs != null) {
-                repository.resetRestStore(userPrefs.carryOverPercentage)
-            }
+            repository.resetRestStore(userPrefs.carryOverPercentage)
             repository.updateWorkTime(0L)
         }
 
@@ -272,7 +321,6 @@ class TimerViewModel(
                 sessionActivities = _sessionActivities.value ?: emptyList()
             )
             repository.insertHistory(history)
-            _sessionActivities.value = emptyList()
         }
     }
 
@@ -296,10 +344,15 @@ class TimerViewModel(
         activityStartTime = System.currentTimeMillis()
     }
 
-    private fun addSessionActivity(activityId: Int, startTime: Long? = activityStartTime, endTime: Long = System.currentTimeMillis()) {
+    private fun addSessionActivity(
+        activityId: Int,
+        startTime: Long? = activityStartTime,
+        endTime: Long = System.currentTimeMillis()
+    ) {
         // Ensure startTime is not null before proceeding
         startTime?.let {
-            val newActivity = SessionActivity(activityId = activityId, startTime = it, endTime = endTime)
+            val newActivity =
+                SessionActivity(activityId = activityId, startTime = it, endTime = endTime, date = getCurrentDate())
 
             viewModelScope.launch {
                 repository.insertSessionActivity(newActivity)
@@ -317,20 +370,25 @@ class TimerViewModel(
         currentSessionStartTime = null
         activityStartTime = null
         (workTime as MutableLiveData).postValue(0L)
+
+        _sessionActivities.value = emptyList()
+
         _isSessionActive.value = false
+        _isWorking.value = false
+        _isPaused.value = false
+        saveIsSessionActiveState(false)
+        saveIsWorkingState(false)
+        saveIsPausedState(false)
     }
 
     // https://developer.android.com/topic/libraries/architecture/viewmodel/viewmodel-factories
     companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
+        fun provideFactory(
+            repository: TimerRepository,
+            dataStore: DataStore<Preferences>
+        ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                val savedStateHandle = createSavedStateHandle()
-                val timerRepository =
-                    (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as StudyTimerTrackerApp).timerRepository
-                TimerViewModel(
-                    repository = timerRepository,
-                    savedStateHandle = savedStateHandle
-                )
+                TimerViewModel(repository, dataStore)
             }
         }
     }

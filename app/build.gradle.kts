@@ -68,16 +68,14 @@ dependencies {
     implementation(libs.androidx.foundation.layout.android)
     implementation(libs.androidx.foundation.layout.android)
     implementation(libs.androidx.foundation.layout.android)
+    implementation(libs.androidx.datastore.core.android)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
-
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-
     implementation("com.kizitonwose.calendar:compose:2.6.0-beta04")
-
     implementation("com.google.code.gson:gson:2.11.0")
-
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation(libs.androidx.room.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -9,11 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -46,10 +43,10 @@ import com.example.studytimertracker.viewmodel.TimerViewModel
 @Composable
 fun TimerScreen(viewModel: TimerViewModel) {
     // Observe LiveData or Flow from ViewModel
-    val restStore by viewModel.restStore.observeAsState()
     val activities by viewModel.activities.observeAsState(emptyList())
     val sessionActivities by viewModel.sessionActivities.observeAsState(emptyList())
     val workTime by viewModel.workTime.observeAsState(0L)
+    val totalRestTime by viewModel.restTime.observeAsState(0L)
     val isSessionActive by viewModel.isSessionActive.observeAsState(false)
     val isWorking by viewModel.isWorking.observeAsState(false)
     val isPaused by viewModel.isPaused.observeAsState(false)
@@ -67,7 +64,6 @@ fun TimerScreen(viewModel: TimerViewModel) {
     }
 
     // Total rest time (for Rest Budget)
-    val totalRestTime = restStore?.restTimeLeft ?: 0L
 
     LazyColumn(
         modifier = Modifier

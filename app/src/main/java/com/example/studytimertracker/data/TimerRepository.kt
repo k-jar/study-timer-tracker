@@ -74,7 +74,10 @@ class TimerRepository(
         // Reset the rest store with carryover and update the last reset date
         val updatedRestStore = restStore.copy(
             restTimeLeft = carryOverRest,
-            lastResetDate = currentDate
+            lastResetDate = currentDate,
+            restStoreAccumulated = 0L,
+            restStoreUsed = 0L,
+            totalTimeWorked = 0L
         )
         updateRestStore(updatedRestStore)
     }
@@ -122,6 +125,10 @@ class TimerRepository(
 
     suspend fun getAllSessionActivities(): List<SessionActivity> {
         return sessionActivityDao.getAllSessionActivities()
+    }
+
+    suspend fun getSessionActivitiesForDay(date: String): List<SessionActivity> {
+        return sessionActivityDao.getSessionActivitiesForDay(date)
     }
 
 }

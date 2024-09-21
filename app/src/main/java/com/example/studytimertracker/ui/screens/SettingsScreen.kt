@@ -60,24 +60,6 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Day Start Time
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Day Start Time", modifier = Modifier.weight(1f))
-                TextField(
-                    value = preferences.dayStartTime,
-                    onValueChange = { viewModel.updateDayStartTime(it) },
-                    modifier = Modifier.width(100.dp),
-                    singleLine = true
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             // Reset Settings Button
             Button(onClick = { viewModel.resetToDefault() }) {
                 Text("Reset to Default")

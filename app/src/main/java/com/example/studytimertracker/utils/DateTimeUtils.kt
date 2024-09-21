@@ -8,6 +8,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
 
 object DateTimeUtils {
     fun getCurrentDate(): String {
@@ -23,12 +24,15 @@ object DateTimeUtils {
 
     // Convert time in ms to "HH:mm:ss" format
     fun formatTime(milliseconds: Long): String {
-        val totalSeconds = milliseconds / 1000
+        val totalSeconds = abs(milliseconds / 1000)
         val hours = totalSeconds / 3600
         val minutes = (totalSeconds % 3600) / 60
         val seconds = totalSeconds % 60
 
-        return String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
+        val formattedTime = String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
+
+        // Return formatted time with a negative sign if milliseconds are negative
+        return if (milliseconds < 0) "-$formattedTime" else formattedTime
     }
 
     fun formatTimestamp(timeMillis: Long): String {

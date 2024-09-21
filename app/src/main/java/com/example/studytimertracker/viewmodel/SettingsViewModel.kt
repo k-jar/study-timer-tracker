@@ -40,16 +40,6 @@ class SettingsViewModel(
         }
     }
 
-    fun updateDayStartTime(time: String) {
-        viewModelScope.launch {
-            val updatedPreferences = userPreferences.value?.copy(dayStartTime = time)
-            if (updatedPreferences != null) {
-                _userPreferences.value = updatedPreferences // Update LiveData
-                repository.updateUserPreferences(updatedPreferences)
-            }
-        }
-    }
-
     fun resetToDefault() {
         viewModelScope.launch {
             repository.updateUserPreferences(UserPreferences())

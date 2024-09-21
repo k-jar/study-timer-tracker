@@ -1,6 +1,8 @@
 package com.example.studytimertracker.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -128,60 +130,66 @@ fun TimerScreen(viewModel: TimerViewModel) {
                 elevation = CardDefaults.cardElevation(4.dp),
                 shape = MaterialTheme.shapes.medium
             ) {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .background(if (totalRestTime < 0) MaterialTheme.colorScheme.error.copy(alpha = 0.7f) else Color.Transparent) // Change background color
                 ) {
-                    // Rest Activity Dropdown
-                    DropdownMenu(
-                        label = "Rest Activity",
-                        activities = activities.filter { it.type == ActivityType.REST },
-                        selectedActivity = selectedRestActivity
-                    ) { activity ->
-                        selectedRestActivity = activity
-                        if (isSessionActive && !isWorking) {
-                            viewModel.switchMode(
-                                selectedWorkActivity,
-                                selectedRestActivity,
-                                switch = false
-                            )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Rest Activity Dropdown
+                        DropdownMenu(
+                            label = "Rest Activity",
+                            activities = activities.filter { it.type == ActivityType.REST },
+                            selectedActivity = selectedRestActivity
+                        ) { activity ->
+                            selectedRestActivity = activity
+                            if (isSessionActive && !isWorking) {
+                                viewModel.switchMode(
+                                    selectedWorkActivity,
+                                    selectedRestActivity,
+                                    switch = false
+                                )
+                            }
                         }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Timer for rest budget
+                        Text(
+                            text = "Rest Budget",
+                            style = MaterialTheme.typography.displaySmall,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = formatTime(totalRestTime),
+                            style = MaterialTheme.typography.displayLarge,
+                            textAlign = TextAlign.Center
+                        )
+
+                        // Work and rest multipliers
+                        Text(
+                            text = buildAnnotatedString {
+                                append("↑")
+                                withStyle(style = SpanStyle(color = Color.Cyan)) {
+                                    append(selectedWorkActivity?.multiplier?.toString() ?: "0")
+                                    append("x")
+                                }
+                                append("     ↓")
+                                withStyle(style = SpanStyle(color = Color.Red)) {
+                                    append(selectedRestActivity?.multiplier?.toString() ?: "0")
+                                    append("x")
+                                }
+                            },
+                            style = MaterialTheme.typography.titleMedium,
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Timer for rest budget
-                    Text(
-                        text = "Rest Budget",
-                        style = MaterialTheme.typography.displaySmall,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = formatTime(totalRestTime),
-                        style = MaterialTheme.typography.displayLarge,
-                        textAlign = TextAlign.Center
-                    )
-
-                    // Work and rest multipliers
-                    Text(
-                        text = buildAnnotatedString {
-                            append("↑")
-                            withStyle(style = SpanStyle(color = Color.Cyan)) {
-                                append(selectedWorkActivity?.multiplier?.toString() ?: "0")
-                                append("x")
-                            }
-                            append("     ↓")
-                            withStyle(style = SpanStyle(color = Color.Red)) {
-                                append(selectedRestActivity?.multiplier?.toString() ?: "0")
-                                append("x")
-                            }
-                        },
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.Bold
-                    )
                 }
             }
         }
@@ -207,7 +215,7 @@ fun TimerScreen(viewModel: TimerViewModel) {
                     )
                 ) {
                     Text(
-                        if (!isSessionActive) "Start Day"
+                        if (!isSessionActive and (selectedWorkActivity != null) and (selectedRestActivity != null)) "Start Day"
                         else if (isWorking) "Switch to Rest"
                         else "Switch to Work"
                     )

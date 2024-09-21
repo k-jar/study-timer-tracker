@@ -108,7 +108,6 @@ class TimerRepository(
     private suspend fun createDefaultUserPreferences(): UserPreferences {
         val defaultPreferences = UserPreferences(
             id = 0,
-            dayStartTime = "07:00", // Default start time
             carryOverPercentage = 50 // Default carry over percentage
         )
         userPreferencesDao.insertOrUpdate(defaultPreferences)

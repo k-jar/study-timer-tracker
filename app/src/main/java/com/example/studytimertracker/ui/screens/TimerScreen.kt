@@ -62,6 +62,8 @@ fun TimerScreen(viewModel: TimerViewModel) {
         if (activities.isNotEmpty()) {
             selectedWorkActivity = activities.firstOrNull { it.type == ActivityType.WORK }
             selectedRestActivity = activities.firstOrNull { it.type == ActivityType.REST }
+
+            viewModel.initializeActivities(selectedWorkActivity, selectedRestActivity)
         }
     }
 

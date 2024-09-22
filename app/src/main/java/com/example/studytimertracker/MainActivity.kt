@@ -33,4 +33,11 @@ class MainActivity : ComponentActivity() {
             )
         }
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (timerViewModel.isSessionActive.value == true) {
+            timerViewModel.pauseTimer()
+        }
+    }
 }

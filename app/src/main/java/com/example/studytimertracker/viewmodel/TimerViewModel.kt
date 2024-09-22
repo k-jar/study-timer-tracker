@@ -71,7 +71,6 @@ class TimerViewModel(
     private var currentWorkActivity: Activity? = null
     private var currentRestActivity: Activity? = null
 
-
     init {
         viewModelScope.launch {
             // Collect data store in a separate coroutine
@@ -83,12 +82,13 @@ class TimerViewModel(
                     _isPaused.value = preferences[SessionPreferences.IS_PAUSED] ?: false
                 }
             }
-
             val restStore = repository.getRestStoreOnce()
             (workTime as MutableLiveData).postValue(restStore.totalTimeWorked) // Restore total time worked
             (restTime as MutableLiveData).postValue(restStore.restTimeLeft)
 
             loadSessionActivities()
+
+            pauseTimer()
 
             // Collect the user preferences flow
             repository.getUserPreferences().collect { userPrefs ->
@@ -145,12 +145,14 @@ class TimerViewModel(
         }
     }
 
-    // Timer Logic
+    fun initializeActivities(workActivity: Activity?, restActivity: Activity?) {
+        currentWorkActivity = workActivity
+        currentRestActivity = restActivity
+    }
 
     fun startSession(workActivity: Activity, restActivity: Activity) {
         currentSessionStartTime = System.currentTimeMillis()
-        currentWorkActivity = workActivity
-        currentRestActivity = restActivity
+        initializeActivities(workActivity, restActivity)
 
         _isWorking.value = true
         _isSessionActive.value = true
@@ -177,6 +179,7 @@ class TimerViewModel(
         if (_isWorking.value == true) {
             // Resume work and accumulate rest
             startWorkTimer()
+            startRestTimer()
         } else {
             // Consume rest and stop work
             startRestTimer()
@@ -252,7 +255,7 @@ class TimerViewModel(
     }
 
     fun pauseTimer() {
-        if (_isPaused.value == true) return
+        if (_isPaused.value == true or (_isSessionActive.value == false)) return
 
         // Record the current activity (work/rest) before pausing
         recordAndAddActivity()
@@ -275,6 +278,16 @@ class TimerViewModel(
 
         // Set session back to active
         _isPaused.value = false
+
+        // Start timers if they're not running (e.g. on app restart)
+        if (_isWorking.value == true) {
+            // Resume work and accumulate rest
+            startWorkTimer()
+            startRestTimer()
+        } else {
+            // Consume rest and stop work
+            startRestTimer()
+        }
 
         saveIsPausedState(false)
 
